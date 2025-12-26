@@ -11,6 +11,9 @@ public sealed class JobCategoryIndex
 	private readonly Dictionary<long, long> _middleCodeBySmallCode;
 	private readonly Dictionary<long, long> _majorCodeBySmallCode;
 
+	// 聚合：中類 -> 小類集合
+	private readonly Dictionary<long, HashSet<long>> _smallCodesByMiddleCode;
+
 	// 聚合：大類 -> 小類集合 / 中類集合
 	private readonly Dictionary<long, HashSet<long>> _smallCodesByMajorCode;
 	private readonly Dictionary<long, HashSet<long>> _middleCodesByMajorCode;
@@ -26,6 +29,7 @@ public sealed class JobCategoryIndex
 
 		_middleCodeBySmallCode = new();
 		_majorCodeBySmallCode = new();
+		_smallCodesByMiddleCode = new();
 
 		_smallCodesByMajorCode = new();
 		_middleCodesByMajorCode = new();
@@ -40,6 +44,7 @@ public sealed class JobCategoryIndex
 		foreach (var middle in middles)
 		{
 			_middleByCode[middle.Code] = middle;
+			_smallCodesByMiddleCode.TryAdd(middle.Code, new HashSet<long>());
 			if (!_middleCodesByMajorCode.TryGetValue(middle.MajorCode, out var middleSet))
 			{
 				middleSet = new HashSet<long>();
@@ -53,6 +58,13 @@ public sealed class JobCategoryIndex
 			_smallByCode[small.Code] = small;
 			_middleCodeBySmallCode[small.Code] = small.MiddleCode;
 			_majorCodeBySmallCode[small.Code] = small.MajorCode;
+
+			if (!_smallCodesByMiddleCode.TryGetValue(small.MiddleCode, out var smallSetInMiddle))
+			{
+				smallSetInMiddle = new HashSet<long>();
+				_smallCodesByMiddleCode[small.MiddleCode] = smallSetInMiddle;
+			}
+			smallSetInMiddle.Add(small.Code);
 
 			if (!_smallCodesByMajorCode.TryGetValue(small.MajorCode, out var smallSet))
 			{
@@ -93,6 +105,37 @@ public sealed class JobCategoryIndex
 				&& _middleByCode.TryGetValue(middleCode, out var middle))
 			{
 				result.Add(middle);
+			}
+		}
+		return result;
+	}
+
+	public IReadOnlyCollection<SmallCategory> GetSmallsByMiddleCodes(IEnumerable<long> middleCodes)
+	{
+		var result = new HashSet<SmallCategory>();
+		foreach (var middleCode in middleCodes)
+		{
+			if (!_smallCodesByMiddleCode.TryGetValue(middleCode, out var smallCodesInMiddle))
+				continue;
+
+			foreach (var smallCode in smallCodesInMiddle)
+			{
+				if (_smallByCode.TryGetValue(smallCode, out var small))
+					result.Add(small);
+			}
+		}
+		return result;
+	}
+
+	public IReadOnlyCollection<MajorCategory> GetMajorsByMiddleCodes(IEnumerable<long> middleCodes)
+	{
+		var result = new HashSet<MajorCategory>();
+		foreach (var middleCode in middleCodes)
+		{
+			if (_middleByCode.TryGetValue(middleCode, out var middle)
+				&& _majorByCode.TryGetValue(middle.MajorCode, out var major))
+			{
+				result.Add(major);
 			}
 		}
 		return result;

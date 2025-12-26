@@ -24,6 +24,12 @@
 | 人事助理 | 100205 |
 | 就業服務員 | 100206 |
 
+## 職缺欄位
+- 職缺編號(常整數)
+- 工作標題
+- 工作說明
+- 職務小類(多筆)
+
 ## 核心技術
 
 - C#
@@ -33,8 +39,10 @@
 
 目標：用「時間複雜度 O(1)」的型別（`Dictionary` / `HashSet`）建立索引，滿足以下查詢：
 
-- 用一個或多個「職務小類」找到「大類」
-- 用一個或多個「職務小類」找到「中類」
+- 用一個或多個「職務小類」找到「大類集合」
+- 用一個或多個「職務小類」找到「中類集合」
+- 用一個或多個「職務中類」找到「小類集合」
+- 用一個或多個「職務中類」找到「大類集合」
 - 用一個或多個「職務大類」找到「小類集合」
 - 用一個或多個「職務大類」找到「中類集合」
 
@@ -67,6 +75,9 @@ public sealed class JobCategoryIndex
 	private readonly Dictionary<long, long> _middleCodeBySmallCode;
 	private readonly Dictionary<long, long> _majorCodeBySmallCode;
 
+	// 聚合：中類 -> 小類集合
+	private readonly Dictionary<long, HashSet<long>> _smallCodesByMiddleCode;
+
 	// 聚合：大類 -> 小類集合 / 中類集合
 	private readonly Dictionary<long, HashSet<long>> _smallCodesByMajorCode;
 	private readonly Dictionary<long, HashSet<long>> _middleCodesByMajorCode;
@@ -82,6 +93,7 @@ public sealed class JobCategoryIndex
 
 		_middleCodeBySmallCode = new();
 		_majorCodeBySmallCode = new();
+		_smallCodesByMiddleCode = new();
 
 		_smallCodesByMajorCode = new();
 		_middleCodesByMajorCode = new();
@@ -96,6 +108,7 @@ public sealed class JobCategoryIndex
 		foreach (var middle in middles)
 		{
 			_middleByCode[middle.Code] = middle;
+			_smallCodesByMiddleCode.TryAdd(middle.Code, new HashSet<long>());
 			if (!_middleCodesByMajorCode.TryGetValue(middle.MajorCode, out var middleSet))
 			{
 				middleSet = new HashSet<long>();
@@ -109,6 +122,13 @@ public sealed class JobCategoryIndex
 			_smallByCode[small.Code] = small;
 			_middleCodeBySmallCode[small.Code] = small.MiddleCode;
 			_majorCodeBySmallCode[small.Code] = small.MajorCode;
+
+			if (!_smallCodesByMiddleCode.TryGetValue(small.MiddleCode, out var smallSetInMiddle))
+			{
+				smallSetInMiddle = new HashSet<long>();
+				_smallCodesByMiddleCode[small.MiddleCode] = smallSetInMiddle;
+			}
+			smallSetInMiddle.Add(small.Code);
 
 			if (!_smallCodesByMajorCode.TryGetValue(small.MajorCode, out var smallSet))
 			{
@@ -149,6 +169,37 @@ public sealed class JobCategoryIndex
 				&& _middleByCode.TryGetValue(middleCode, out var middle))
 			{
 				result.Add(middle);
+			}
+		}
+		return result;
+	}
+
+	public IReadOnlyCollection<SmallCategory> GetSmallsByMiddleCodes(IEnumerable<long> middleCodes)
+	{
+		var result = new HashSet<SmallCategory>();
+		foreach (var middleCode in middleCodes)
+		{
+			if (!_smallCodesByMiddleCode.TryGetValue(middleCode, out var smallCodesInMiddle))
+				continue;
+
+			foreach (var smallCode in smallCodesInMiddle)
+			{
+				if (_smallByCode.TryGetValue(smallCode, out var small))
+					result.Add(small);
+			}
+		}
+		return result;
+	}
+
+	public IReadOnlyCollection<MajorCategory> GetMajorsByMiddleCodes(IEnumerable<long> middleCodes)
+	{
+		var result = new HashSet<MajorCategory>();
+		foreach (var middleCode in middleCodes)
+		{
+			if (_middleByCode.TryGetValue(middleCode, out var middle)
+				&& _majorByCode.TryGetValue(middle.MajorCode, out var major))
+			{
+				result.Add(major);
 			}
 		}
 		return result;
@@ -225,6 +276,12 @@ var smalls1 = index.GetSmallsByMajorCodes(new[] { 100000L });
 
 // 4) 用一個或多個大類找到中類集合
 var middles2 = index.GetMiddlesByMajorCodes(new[] { 100000L });
+
+// 5) 用一個或多個中類找到小類集合
+var smalls2 = index.GetSmallsByMiddleCodes(new[] { 100100L, 100200L });
+
+// 6) 用一個或多個中類找到大類集合
+var majors2 = index.GetMajorsByMiddleCodes(new[] { 100100L, 100200L });
 ```
 
 ## 物件設計：職缺代碼 → 職務類別索引
