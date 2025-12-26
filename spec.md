@@ -6,23 +6,23 @@
 
 | 名稱 | 代碼 |
 | --- | --- |
-| 管理幕僚／人資／行政 | 1 |
+| 管理幕僚／人資／行政 | 100000 |
 
 ### 中類
 
 | 名稱 | 代碼 |
 | --- | --- |
-| 管理幕僚 | 1-1 |
-| 人力資源 | 1-2 |
+| 管理幕僚 | 100100 |
+| 人力資源 | 100200 |
 
 ### 小類
 
 | 名稱 | 代碼 |
 | --- | --- |
-| 經營管理主管 | 1-1-1 |
-| 特別助理 | 1-1-2 |
-| 人力助理 | 1-2-1 |
-| 就業服務員 | 1-2-2 |
+| 經營管理主管 | 100101 |
+| 特別助理 | 100105 |
+| 人事助理 | 100205 |
+| 就業服務員 | 100206 |
 
 ## 核心技術
 
@@ -41,9 +41,9 @@
 ### C# 資料模型
 
 ```csharp
-public sealed record MajorCategory(string Code, string Name);
-public sealed record MiddleCategory(string Code, string Name, string MajorCode);
-public sealed record SmallCategory(string Code, string Name, string MiddleCode, string MajorCode);
+public sealed record MajorCategory(long Code, string Name);
+public sealed record MiddleCategory(long Code, string Name, long MajorCode);
+public sealed record SmallCategory(long Code, string Name, long MiddleCode, long MajorCode);
 ```
 
 ### C# 索引物件（O(1)）
@@ -59,38 +59,38 @@ using System.Collections.Generic;
 public sealed class JobCategoryIndex
 {
 	// 基本定義（Code -> Entity）
-	private readonly Dictionary<string, MajorCategory> _majorByCode;
-	private readonly Dictionary<string, MiddleCategory> _middleByCode;
-	private readonly Dictionary<string, SmallCategory> _smallByCode;
+	private readonly Dictionary<long, MajorCategory> _majorByCode;
+	private readonly Dictionary<long, MiddleCategory> _middleByCode;
+	private readonly Dictionary<long, SmallCategory> _smallByCode;
 
 	// 反查：小類 -> 中類/大類
-	private readonly Dictionary<string, string> _middleCodeBySmallCode;
-	private readonly Dictionary<string, string> _majorCodeBySmallCode;
+	private readonly Dictionary<long, long> _middleCodeBySmallCode;
+	private readonly Dictionary<long, long> _majorCodeBySmallCode;
 
 	// 聚合：大類 -> 小類集合 / 中類集合
-	private readonly Dictionary<string, HashSet<string>> _smallCodesByMajorCode;
-	private readonly Dictionary<string, HashSet<string>> _middleCodesByMajorCode;
+	private readonly Dictionary<long, HashSet<long>> _smallCodesByMajorCode;
+	private readonly Dictionary<long, HashSet<long>> _middleCodesByMajorCode;
 
 	public JobCategoryIndex(
 		IEnumerable<MajorCategory> majors,
 		IEnumerable<MiddleCategory> middles,
 		IEnumerable<SmallCategory> smalls)
 	{
-		_majorByCode = new(StringComparer.OrdinalIgnoreCase);
-		_middleByCode = new(StringComparer.OrdinalIgnoreCase);
-		_smallByCode = new(StringComparer.OrdinalIgnoreCase);
+		_majorByCode = new();
+		_middleByCode = new();
+		_smallByCode = new();
 
-		_middleCodeBySmallCode = new(StringComparer.OrdinalIgnoreCase);
-		_majorCodeBySmallCode = new(StringComparer.OrdinalIgnoreCase);
+		_middleCodeBySmallCode = new();
+		_majorCodeBySmallCode = new();
 
-		_smallCodesByMajorCode = new(StringComparer.OrdinalIgnoreCase);
-		_middleCodesByMajorCode = new(StringComparer.OrdinalIgnoreCase);
+		_smallCodesByMajorCode = new();
+		_middleCodesByMajorCode = new();
 
 		foreach (var major in majors)
 		{
 			_majorByCode[major.Code] = major;
-			_smallCodesByMajorCode.TryAdd(major.Code, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
-			_middleCodesByMajorCode.TryAdd(major.Code, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+			_smallCodesByMajorCode.TryAdd(major.Code, new HashSet<long>());
+			_middleCodesByMajorCode.TryAdd(major.Code, new HashSet<long>());
 		}
 
 		foreach (var middle in middles)
@@ -98,7 +98,7 @@ public sealed class JobCategoryIndex
 			_middleByCode[middle.Code] = middle;
 			if (!_middleCodesByMajorCode.TryGetValue(middle.MajorCode, out var middleSet))
 			{
-				middleSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+				middleSet = new HashSet<long>();
 				_middleCodesByMajorCode[middle.MajorCode] = middleSet;
 			}
 			middleSet.Add(middle.Code);
@@ -112,21 +112,21 @@ public sealed class JobCategoryIndex
 
 			if (!_smallCodesByMajorCode.TryGetValue(small.MajorCode, out var smallSet))
 			{
-				smallSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+				smallSet = new HashSet<long>();
 				_smallCodesByMajorCode[small.MajorCode] = smallSet;
 			}
 			smallSet.Add(small.Code);
 
 			if (!_middleCodesByMajorCode.TryGetValue(small.MajorCode, out var middleSet))
 			{
-				middleSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+				middleSet = new HashSet<long>();
 				_middleCodesByMajorCode[small.MajorCode] = middleSet;
 			}
 			middleSet.Add(small.MiddleCode);
 		}
 	}
 
-	public IReadOnlyCollection<MajorCategory> GetMajorsBySmallCodes(IEnumerable<string> smallCodes)
+	public IReadOnlyCollection<MajorCategory> GetMajorsBySmallCodes(IEnumerable<long> smallCodes)
 	{
 		var result = new HashSet<MajorCategory>();
 		foreach (var smallCode in smallCodes)
@@ -140,7 +140,7 @@ public sealed class JobCategoryIndex
 		return result;
 	}
 
-	public IReadOnlyCollection<MiddleCategory> GetMiddlesBySmallCodes(IEnumerable<string> smallCodes)
+	public IReadOnlyCollection<MiddleCategory> GetMiddlesBySmallCodes(IEnumerable<long> smallCodes)
 	{
 		var result = new HashSet<MiddleCategory>();
 		foreach (var smallCode in smallCodes)
@@ -154,7 +154,7 @@ public sealed class JobCategoryIndex
 		return result;
 	}
 
-	public IReadOnlyCollection<SmallCategory> GetSmallsByMajorCodes(IEnumerable<string> majorCodes)
+	public IReadOnlyCollection<SmallCategory> GetSmallsByMajorCodes(IEnumerable<long> majorCodes)
 	{
 		var result = new HashSet<SmallCategory>();
 		foreach (var majorCode in majorCodes)
@@ -171,7 +171,7 @@ public sealed class JobCategoryIndex
 		return result;
 	}
 
-	public IReadOnlyCollection<MiddleCategory> GetMiddlesByMajorCodes(IEnumerable<string> majorCodes)
+	public IReadOnlyCollection<MiddleCategory> GetMiddlesByMajorCodes(IEnumerable<long> majorCodes)
 	{
 		var result = new HashSet<MiddleCategory>();
 		foreach (var majorCode in majorCodes)
@@ -195,36 +195,36 @@ public sealed class JobCategoryIndex
 ```csharp
 var majors = new[]
 {
-	new MajorCategory("1", "管理幕僚／人資／行政"),
+	new MajorCategory(100000, "管理幕僚／人資／行政"),
 };
 
 var middles = new[]
 {
-	new MiddleCategory("1-1", "管理幕僚", "1"),
-	new MiddleCategory("1-2", "人力資源", "1"),
+	new MiddleCategory(100100, "管理幕僚", 100000),
+	new MiddleCategory(100200, "人力資源", 100000),
 };
 
 var smalls = new[]
 {
-	new SmallCategory("1-1-1", "經營管理主管", "1-1", "1"),
-	new SmallCategory("1-1-2", "特別助理", "1-1", "1"),
-	new SmallCategory("1-2-1", "人力助理", "1-2", "1"),
-	new SmallCategory("1-2-2", "就業服務員", "1-2", "1"),
+	new SmallCategory(100101, "經營管理主管", 100100, 100000),
+	new SmallCategory(100105, "特別助理", 100100, 100000),
+	new SmallCategory(100205, "人事助理", 100200, 100000),
+	new SmallCategory(100206, "就業服務員", 100200, 100000),
 };
 
 var index = new JobCategoryIndex(majors, middles, smalls);
 
 // 1) 用一個或多個小類找到大類
-var majors1 = index.GetMajorsBySmallCodes(new[] { "1-2-1", "1-1-2" });
+var majors1 = index.GetMajorsBySmallCodes(new[] { 100205L, 100105L });
 
 // 2) 用一個或多個小類找到中類
-var middles1 = index.GetMiddlesBySmallCodes(new[] { "1-2-1", "1-1-2" });
+var middles1 = index.GetMiddlesBySmallCodes(new[] { 100205L, 100105L });
 
 // 3) 用一個或多個大類找到小類集合
-var smalls1 = index.GetSmallsByMajorCodes(new[] { "1" });
+var smalls1 = index.GetSmallsByMajorCodes(new[] { 100000L });
 
 // 4) 用一個或多個大類找到中類集合
-var middles2 = index.GetMiddlesByMajorCodes(new[] { "1" });
+var middles2 = index.GetMiddlesByMajorCodes(new[] { 100000L });
 ```
 
 ## 物件設計：職缺代碼 → 職務類別索引
@@ -247,34 +247,34 @@ using System.Collections.Generic;
 
 public sealed class JobCodeCategoryIndex
 {
-	private readonly Dictionary<string, HashSet<string>> _smallCodesByJobCode;
-	private readonly Dictionary<string, HashSet<string>> _middleCodesByJobCode;
-	private readonly Dictionary<string, HashSet<string>> _majorCodesByJobCode;
+	private readonly Dictionary<string, HashSet<long>> _smallCodesByJobCode;
+	private readonly Dictionary<string, HashSet<long>> _middleCodesByJobCode;
+	private readonly Dictionary<string, HashSet<long>> _majorCodesByJobCode;
 
 	public JobCodeCategoryIndex(
-		Dictionary<string, HashSet<string>> smallCodesByJobCode,
-		Dictionary<string, HashSet<string>> middleCodesByJobCode,
-		Dictionary<string, HashSet<string>> majorCodesByJobCode)
+		Dictionary<string, HashSet<long>> smallCodesByJobCode,
+		Dictionary<string, HashSet<long>> middleCodesByJobCode,
+		Dictionary<string, HashSet<long>> majorCodesByJobCode)
 	{
 		_smallCodesByJobCode = smallCodesByJobCode;
 		_middleCodesByJobCode = middleCodesByJobCode;
 		_majorCodesByJobCode = majorCodesByJobCode;
 	}
 
-	public IReadOnlyCollection<string> GetSmallCodes(IEnumerable<string> jobCodes)
+	public IReadOnlyCollection<long> GetSmallCodes(IEnumerable<string> jobCodes)
 		=> UnionAll(_smallCodesByJobCode, jobCodes);
 
-	public IReadOnlyCollection<string> GetMiddleCodes(IEnumerable<string> jobCodes)
+	public IReadOnlyCollection<long> GetMiddleCodes(IEnumerable<string> jobCodes)
 		=> UnionAll(_middleCodesByJobCode, jobCodes);
 
-	public IReadOnlyCollection<string> GetMajorCodes(IEnumerable<string> jobCodes)
+	public IReadOnlyCollection<long> GetMajorCodes(IEnumerable<string> jobCodes)
 		=> UnionAll(_majorCodesByJobCode, jobCodes);
 
-	private static IReadOnlyCollection<string> UnionAll(
-		Dictionary<string, HashSet<string>> map,
+	private static IReadOnlyCollection<long> UnionAll(
+		Dictionary<string, HashSet<long>> map,
 		IEnumerable<string> keys)
 	{
-		var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		var result = new HashSet<long>();
 		foreach (var key in keys)
 		{
 			if (!map.TryGetValue(key, out var values))
@@ -294,20 +294,20 @@ public sealed class JobCodeCategoryIndex
 // 範例：職缺代碼 -> 類別代碼
 var smallByJob = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
 {
-	["JOB-001"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "1-1-2", "1-2-1" },
-	["JOB-002"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "1-1-1" },
+	["JOB-001"] = new HashSet<long> { 100105L, 100205L },
+	["JOB-002"] = new HashSet<long> { 100101L },
 };
 
-var middleByJob = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
+var middleByJob = new Dictionary<string, HashSet<long>>(StringComparer.OrdinalIgnoreCase)
 {
-	["JOB-001"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "1-1", "1-2" },
-	["JOB-002"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "1-1" },
+	["JOB-001"] = new HashSet<long> { 100100L, 100200L },
+	["JOB-002"] = new HashSet<long> { 100100L },
 };
 
-var majorByJob = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
+var majorByJob = new Dictionary<string, HashSet<long>>(StringComparer.OrdinalIgnoreCase)
 {
-	["JOB-001"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "1" },
-	["JOB-002"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "1" },
+	["JOB-001"] = new HashSet<long> { 100000L },
+	["JOB-002"] = new HashSet<long> { 100000L },
 };
 
 var jobCodeIndex = new JobCodeCategoryIndex(smallByJob, middleByJob, majorByJob);
@@ -318,6 +318,6 @@ var smallCodes = jobCodeIndex.GetSmallCodes(new[] { "JOB-001", "JOB-002" });
 // 2) 用一個或多個職缺代碼找到多筆職務中類
 var middleCodes = jobCodeIndex.GetMiddleCodes(new[] { "JOB-001", "JOB-002" });
 
-// 3) 用一個或多個職缺代碼找到職務大類（此範例為 {"1"}）
+// 3) 用一個或多個職缺代碼找到職務大類（此範例為 {100000L}）
 var majorCodes = jobCodeIndex.GetMajorCodes(new[] { "JOB-001", "JOB-002" });
 ```
