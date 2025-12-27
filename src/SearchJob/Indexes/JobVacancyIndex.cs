@@ -3,7 +3,7 @@ using SearchJob.Models;
 namespace SearchJob.Indexes;
 
 /// <summary>
-/// 職缺代碼 ↔ 職務類別雙向索引（對應 spec-2 第 5 章與第 6 章）。
+/// 職缺索引（對應 spec-2 第 5 章與第 6 章）。
 /// 
 /// 設計重點：
 /// - 在建構時預先建置小類/中類/大類索引，避免查詢時跨索引重算
@@ -11,14 +11,14 @@ namespace SearchJob.Indexes;
 /// - 中類和大類代碼在建構時從層級索引推導並快取（對應 spec-2 第 5.3 節）
 /// - 同時建立反向索引：職務大類 → 職缺集合（對應 spec-2 第 6 章）
 /// </summary>
-public sealed class JobToCategoryIndex
+public sealed class JobVacancyIndex
 {
     private readonly Dictionary<int, HashSet<int>> _minorCodesByJobId;
     private readonly Dictionary<int, HashSet<int>> _middleCodesByJobId;
     private readonly Dictionary<int, HashSet<int>> _majorCodesByJobId;
     private readonly Dictionary<int, HashSet<int>> _jobIdsByMajorCode;
 
-    public JobToCategoryIndex(JobCategoryHierarchyIndex categoryIndex, IEnumerable<JobPosting> jobs)
+    public JobVacancyIndex(JobCategoryHierarchyIndex categoryIndex, IEnumerable<JobVacancy> jobs)
     {
         ArgumentNullException.ThrowIfNull(categoryIndex);
         ArgumentNullException.ThrowIfNull(jobs);

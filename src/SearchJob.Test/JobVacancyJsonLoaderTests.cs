@@ -3,17 +3,17 @@ using SearchJob.Models;
 
 namespace SearchJob.Test;
 
-public sealed class JobPostingJsonLoaderTests
+public sealed class JobVacancyJsonLoaderTests
 {
     [Fact]
-    public void LoadJobPostings_Reads_TestData_Job_Json_File()
+    public void LoadJobVacancies_Reads_TestData_Job_Json_File()
     {
         // Arrange
         var jsonPath = Path.Combine(AppContext.BaseDirectory, "TestData", "job.json");
         Assert.True(File.Exists(jsonPath), $"Missing test data file: {jsonPath}");
 
         // Act
-        var jobs = JobPostingJsonLoader.LoadJobPostings(jsonPath);
+        var jobs = JobVacancyJsonLoader.LoadJobVacancies(jsonPath);
 
         // Assert
         Assert.NotNull(jobs);
@@ -28,7 +28,7 @@ public sealed class JobPostingJsonLoaderTests
     }
 
     [Fact]
-    public void LoadJobPostings_Throws_When_Title_Is_Missing()
+    public void LoadJobVacancies_Throws_When_Title_Is_Missing()
     {
         // Arrange
         var tempFile = Path.Combine(Path.GetTempPath(), $"job-invalid-{Guid.NewGuid():N}.json");
@@ -37,7 +37,7 @@ public sealed class JobPostingJsonLoaderTests
         try
         {
             // Act + Assert
-            var ex = Assert.Throws<JsonException>(() => JobPostingJsonLoader.LoadJobPostings(tempFile));
+            var ex = Assert.Throws<JsonException>(() => JobVacancyJsonLoader.LoadJobVacancies(tempFile));
             Assert.Contains("title", ex.Message, StringComparison.OrdinalIgnoreCase);
         }
         finally
@@ -50,7 +50,7 @@ public sealed class JobPostingJsonLoaderTests
     }
 
     [Fact]
-    public void LoadJobPostings_Uses_Empty_Set_When_MinorCodes_Is_Null()
+    public void LoadJobVacancies_Uses_Empty_Set_When_MinorCodes_Is_Null()
     {
         // Arrange
         var tempFile = Path.Combine(Path.GetTempPath(), $"job-null-minors-{Guid.NewGuid():N}.json");
@@ -59,7 +59,7 @@ public sealed class JobPostingJsonLoaderTests
         try
         {
             // Act
-            var jobs = JobPostingJsonLoader.LoadJobPostings(tempFile);
+            var jobs = JobVacancyJsonLoader.LoadJobVacancies(tempFile);
 
             // Assert
             Assert.Single(jobs);

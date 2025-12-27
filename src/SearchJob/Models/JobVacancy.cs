@@ -1,10 +1,13 @@
 namespace SearchJob.Models;
 
-public sealed class JobPosting
+/// <summary>
+/// 職缺資料模型（對應 spec-2 第 3 章）。
+/// </summary>
+public sealed class JobVacancy
 {
     private readonly HashSet<int> _minorCodes;
 
-    public JobPosting(int jobId, string title, string description, IEnumerable<int>? minorCodes)
+    public JobVacancy(int jobId, string title, string description, IEnumerable<int>? minorCodes)
     {
         if (string.IsNullOrWhiteSpace(title))
         {

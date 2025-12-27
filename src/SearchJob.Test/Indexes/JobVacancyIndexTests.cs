@@ -3,7 +3,7 @@ using SearchJob.Models;
 
 namespace SearchJob.Test.Indexes;
 
-public sealed class JobToCategoryIndexTests
+public sealed class JobVacancyIndexTests
 {
     private static JobCategoryHierarchyIndex CreateCategoryIndex()
     {
@@ -36,19 +36,19 @@ public sealed class JobToCategoryIndexTests
     [Fact]
     public void GetCodesByJobIds_WhenJobsContainDuplicatesNullAndUnknown_ReturnsExpectedSets()
     {
-        // Protects: JobToCategoryIndex 會把多個 jobId 的 minorCodes union 起來、忽略重複與未知 jobId，
+        // Protects: JobVacancyIndex 會把多個 jobId 的 minorCodes union 起來、忽略重複與未知 jobId，
         // 並透過 JobCategoryHierarchyIndex 從 minor 正確推導 middle/major。
 
         var categoryIndex = CreateCategoryIndex();
 
-        var jobs = new List<JobPosting>
+        var jobs = new List<JobVacancy>
         {
-            new JobPosting(1, "Job 1", "desc", new[] { 100101, 100101, 100205 }),
-            new JobPosting(2, "Job 2", "desc", minorCodes: null),
-            new JobPosting(3, "Job 3", "desc", new[] { 100206 }),
+            new JobVacancy(1, "Job 1", "desc", new[] { 100101, 100101, 100205 }),
+            new JobVacancy(2, "Job 2", "desc", minorCodes: null),
+            new JobVacancy(3, "Job 3", "desc", new[] { 100206 }),
         };
 
-        var jobIndex = new JobToCategoryIndex(categoryIndex, jobs);
+        var jobIndex = new JobVacancyIndex(categoryIndex, jobs);
 
         var minorCodes = jobIndex.GetMinorCodesByJobIds(new[] { 1, 3, 3, 999 });
         AssertSetEquals(new[] { 100101, 100205, 100206 }, minorCodes);
@@ -63,19 +63,19 @@ public sealed class JobToCategoryIndexTests
     [Fact]
     public void GetJobIdsByMajorCodes_WhenInputHasDuplicatesOrUnknown_IgnoresDuplicatesAndUnknown()
     {
-        // Protects: JobToCategoryIndex 會忽略重複/未知 major code，且只回傳隸屬該 major(含後代 minor) 的 jobIds。
+        // Protects: JobVacancyIndex 會忽略重複/未知 major code，且只回傳隸屬該 major(含後代 minor) 的 jobIds。
 
         var categoryIndex = CreateCategoryIndex();
 
-        var jobs = new List<JobPosting>
+        var jobs = new List<JobVacancy>
         {
-            new JobPosting(1, "Job 1", "desc", new[] { 100101, 999999 }),
-            new JobPosting(2, "Job 2", "desc", minorCodes: null),
-            new JobPosting(3, "Job 3", "desc", new[] { 100206 }),
-            new JobPosting(4, "Job 4", "desc", new[] { 999999 }),
+            new JobVacancy(1, "Job 1", "desc", new[] { 100101, 999999 }),
+            new JobVacancy(2, "Job 2", "desc", minorCodes: null),
+            new JobVacancy(3, "Job 3", "desc", new[] { 100206 }),
+            new JobVacancy(4, "Job 4", "desc", new[] { 999999 }),
         };
 
-        var index = new JobToCategoryIndex(categoryIndex, jobs);
+        var index = new JobVacancyIndex(categoryIndex, jobs);
         var jobIds = index.GetJobIdsByMajorCodes(new[] { 100000, 100000, 999999 });
 
         AssertSetEquals(new[] { 1, 3 }, jobIds);
