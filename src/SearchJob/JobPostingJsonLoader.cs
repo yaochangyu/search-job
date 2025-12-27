@@ -56,7 +56,7 @@ public static class JobPostingJsonLoader
                 throw new JsonException($"Missing or empty title for jobId={node.JobId}.");
             }
 
-            var minorCodes = node.MinorCodes ?? new List<int>();
+            var minorCodes = node.MinorCodes ?? Array.Empty<int>();
             result.Add(new JobPosting(node.JobId.Value, node.Title, node.Description ?? string.Empty, minorCodes));
         }
 

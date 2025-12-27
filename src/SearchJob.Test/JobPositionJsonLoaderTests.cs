@@ -65,4 +65,48 @@ public sealed class JobPositionJsonLoaderTests
             }
         }
     }
+
+    [Fact]
+    public void LoadJobCategories_WhenJsonHasFlatAndNestedDuplicates_DeDuplicatesByCode()
+    {
+        // Arrange
+        // Simulate a dataset that contains BOTH:
+        // - a nested tree (major -> middle -> minor)
+        // - a flat list of the same nodes (duplicated codes)
+        // Without de-duplication, building JobCategoryHierarchyIndex would fail due to duplicate codes.
+        var tempFile = Path.Combine(Path.GetTempPath(), $"jobPosition-dup-{Guid.NewGuid():N}.json");
+
+        File.WriteAllText(tempFile,
+            "[" +
+            // Major with nested children
+            "  { \"code\": 100000, \"name\": \"管理幕僚／人資／行政\", \"parentCode\": null, \"level\": 1, \"children\": [" +
+            "      { \"code\": 100100, \"name\": \"管理幕僚\", \"parentCode\": 100000, \"level\": 2, \"children\": [" +
+            "          { \"code\": 100101, \"name\": \"經營管理主管\", \"parentCode\": 100100, \"level\": 3 }" +
+            "      ] }" +
+            "  ] }," +
+            // Flat duplicates of middle + minor
+            "  { \"code\": 100100, \"name\": \"管理幕僚\", \"parentCode\": 100000, \"level\": 2 }," +
+            "  { \"code\": 100101, \"name\": \"經營管理主管\", \"parentCode\": 100100, \"level\": 3 }" +
+            "]");
+
+        try
+        {
+            // Act
+            var categories = JobPositionJsonLoader.LoadJobCategories(tempFile);
+
+            // Assert: unique codes only
+            Assert.Equal(3, categories.Select(c => c.Code).Distinct().Count());
+            Assert.Equal(3, categories.Count);
+
+            // And index building should not throw
+            _ = new JobCategoryHierarchyIndex(categories);
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+            {
+                File.Delete(tempFile);
+            }
+        }
+    }
 }

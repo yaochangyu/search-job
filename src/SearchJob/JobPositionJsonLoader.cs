@@ -70,6 +70,7 @@ public static class JobPositionJsonLoader
     {
         var result = new List<JobPositionNode>();
         var stack = new Stack<JobPositionNode>();
+        var seenCodes = new HashSet<int>();
 
         foreach (var root in rootNodes)
         {
@@ -83,6 +84,13 @@ public static class JobPositionJsonLoader
             while (stack.Count > 0)
             {
                 var current = stack.Pop();
+
+                // 資料可能同時提供扁平清單與巢狀 children，或 children 形成循環；以 code 去重可避免重複與無限遍歷。
+                if (!seenCodes.Add(current.Code))
+                {
+                    continue;
+                }
+
                 result.Add(current);
 
                 if (current.Children is null || current.Children.Count == 0)
