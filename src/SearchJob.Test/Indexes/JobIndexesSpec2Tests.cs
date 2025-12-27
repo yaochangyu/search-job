@@ -116,4 +116,23 @@ public sealed class JobIndexesSpec2Tests
         var majorCodes = jobIndex.GetMajorCodesByJobIds(new[] { 1, 3, 999 });
         AssertSetEquals(new[] { 100000 }, majorCodes);
     }
+
+    [Fact]
+    public void Spec2_6_2_MajorCode_To_JobIds()
+    {
+        var categoryIndex = CreateCategoryIndex();
+
+        var jobs = new List<JobPosting>
+        {
+            new JobPosting(1, "Job 1", "desc", new[] { 100101, 999999 }),
+            new JobPosting(2, "Job 2", "desc", minorCodes: null),
+            new JobPosting(3, "Job 3", "desc", new[] { 100206 }),
+            new JobPosting(4, "Job 4", "desc", new[] { 999999 }),
+        };
+
+        var index = new MajorToJobIndex(categoryIndex, jobs);
+        var jobIds = index.GetJobIdsByMajorCodes(new[] { 100000, 100000, 999999 });
+
+        AssertSetEquals(new[] { 1, 3 }, jobIds);
+    }
 }
