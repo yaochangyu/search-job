@@ -3,7 +3,7 @@ using SearchJob.Models;
 
 namespace SearchJob.Test.Indexes;
 
-public sealed class JobIndexesSpec2Tests
+public sealed class JobIndexesTests
 {
     private static JobCategoryHierarchyIndex CreateCategoryIndex()
     {
@@ -34,7 +34,7 @@ public sealed class JobIndexesSpec2Tests
     }
 
     [Fact]
-    public void Spec2_4_2_1_GetMajorCodesByMinorCodes()
+    public void CategoryIndex_GetMajorCodesByMinorCodes_IgnoresDuplicatesAndUnknown()
     {
         var index = CreateCategoryIndex();
 
@@ -44,7 +44,7 @@ public sealed class JobIndexesSpec2Tests
     }
 
     [Fact]
-    public void Spec2_4_2_2_GetMiddleCodesByMinorCodes()
+    public void CategoryIndex_GetMiddleCodesByMinorCodes_IgnoresDuplicatesAndUnknown()
     {
         var index = CreateCategoryIndex();
 
@@ -54,7 +54,7 @@ public sealed class JobIndexesSpec2Tests
     }
 
     [Fact]
-    public void Spec2_4_2_3_GetMinorCodesByMiddleCodes()
+    public void CategoryIndex_GetMinorCodesByMiddleCodes_IgnoresDuplicatesAndUnknown()
     {
         var index = CreateCategoryIndex();
 
@@ -64,7 +64,7 @@ public sealed class JobIndexesSpec2Tests
     }
 
     [Fact]
-    public void Spec2_4_2_4_GetMajorCodesByMiddleCodes()
+    public void CategoryIndex_GetMajorCodesByMiddleCodes_IgnoresDuplicatesAndUnknown()
     {
         var index = CreateCategoryIndex();
 
@@ -74,7 +74,7 @@ public sealed class JobIndexesSpec2Tests
     }
 
     [Fact]
-    public void Spec2_4_2_5_GetMinorCodesByMajorCodes()
+    public void CategoryIndex_GetMinorCodesByMajorCodes_IgnoresDuplicatesAndUnknown()
     {
         var index = CreateCategoryIndex();
 
@@ -84,7 +84,7 @@ public sealed class JobIndexesSpec2Tests
     }
 
     [Fact]
-    public void Spec2_4_2_6_GetMiddleCodesByMajorCodes()
+    public void CategoryIndex_GetMiddleCodesByMajorCodes_IgnoresDuplicatesAndUnknown()
     {
         var index = CreateCategoryIndex();
 
@@ -94,7 +94,7 @@ public sealed class JobIndexesSpec2Tests
     }
 
     [Fact]
-    public void Spec2_5_2_JobId_To_Minor_Middle_Major_Codes()
+    public void JobToCategoryIndex_GetCodesByJobIds_ReturnsExpectedSets()
     {
         var categoryIndex = CreateCategoryIndex();
 
@@ -105,7 +105,7 @@ public sealed class JobIndexesSpec2Tests
             new JobPosting(3, "Job 3", "desc", new[] { 100206 }),
         };
 
-        var jobIndex = new JobToJobCategoryIndex(categoryIndex, jobs);
+        var jobIndex = new JobToCategoryIndex(categoryIndex, jobs);
 
         var minorCodes = jobIndex.GetMinorCodesByJobIds(new[] { 1, 3, 3, 999 });
         AssertSetEquals(new[] { 100101, 100205, 100206 }, minorCodes);
@@ -118,7 +118,7 @@ public sealed class JobIndexesSpec2Tests
     }
 
     [Fact]
-    public void Spec2_6_2_MajorCode_To_JobIds()
+    public void MajorToJobIndex_GetJobIdsByMajorCodes_IgnoresDuplicatesAndUnknown()
     {
         var categoryIndex = CreateCategoryIndex();
 

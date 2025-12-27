@@ -2,12 +2,12 @@ using SearchJob.Models;
 
 namespace SearchJob.Indexes;
 
-public sealed class JobToJobCategoryIndex
+public sealed class JobToCategoryIndex
 {
     private readonly JobCategoryHierarchyIndex _categoryIndex;
     private readonly Dictionary<int, HashSet<int>> _minorCodesByJobId;
 
-    public JobToJobCategoryIndex(JobCategoryHierarchyIndex categoryIndex, IEnumerable<JobPosting> jobs)
+    public JobToCategoryIndex(JobCategoryHierarchyIndex categoryIndex, IEnumerable<JobPosting> jobs)
     {
         ArgumentNullException.ThrowIfNull(categoryIndex);
         ArgumentNullException.ThrowIfNull(jobs);
