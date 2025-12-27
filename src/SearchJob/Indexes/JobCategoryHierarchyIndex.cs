@@ -34,6 +34,9 @@ public sealed class JobCategoryHierarchyIndex
     private readonly Dictionary<int, HashSet<int>> _middleCodesByMajorCode;
     private readonly Dictionary<int, HashSet<int>> _minorCodesByMajorCode;
 
+    // 用來偵測是否有重複 code（同一份資料內不允許重複）。
+    private readonly HashSet<int> _allCodes;
+
     /// <summary>
     /// 建立層級索引。
     /// </summary>
@@ -60,9 +63,14 @@ public sealed class JobCategoryHierarchyIndex
         _middleCodesByMajorCode = new Dictionary<int, HashSet<int>>();
         _minorCodesByMajorCode = new Dictionary<int, HashSet<int>>();
 
-        // 用來偵測是否有重複 code（同一份資料內不允許重複）。
-        var allCodes = new HashSet<int>();
+        _allCodes = new HashSet<int>();
 
+        // 對應 spec-2 4.0 #2：把職務類別分別寫入到索引物件（建議順序：Major -> Middle -> Minor）。
+        WriteAllCategories(categories);
+    }
+
+    private void WriteAllCategories(IEnumerable<JobCategory> categories)
+    {
         // 1) majors：先建立大類索引，因為中類會引用到大類。
         foreach (var category in categories.Where(c => c.Level == JobCategoryLevel.Major))
         {
@@ -71,7 +79,7 @@ public sealed class JobCategoryHierarchyIndex
                 throw new ArgumentException($"Major category must not have ParentCode. Code={category.Code}", nameof(categories));
             }
 
-            if (!allCodes.Add(category.Code))
+            if (!_allCodes.Add(category.Code))
             {
                 throw new ArgumentException($"Duplicate category code found. Code={category.Code}", nameof(categories));
             }
@@ -98,7 +106,7 @@ public sealed class JobCategoryHierarchyIndex
                     nameof(categories));
             }
 
-            if (!allCodes.Add(category.Code))
+            if (!_allCodes.Add(category.Code))
             {
                 throw new ArgumentException($"Duplicate category code found. Code={category.Code}", nameof(categories));
             }
@@ -134,7 +142,7 @@ public sealed class JobCategoryHierarchyIndex
                     nameof(categories));
             }
 
-            if (!allCodes.Add(category.Code))
+            if (!_allCodes.Add(category.Code))
             {
                 throw new ArgumentException($"Duplicate category code found. Code={category.Code}", nameof(categories));
             }
