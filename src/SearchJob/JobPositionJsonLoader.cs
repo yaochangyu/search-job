@@ -22,6 +22,8 @@ public static class JobPositionJsonLoader
     /// <remarks>
     /// 目前假設 JSON 根節點是陣列，且每個節點至少包含：code、name、parentCode、level。
     /// level=1/2/3 對應 <see cref="JobCategoryLevel"/> 的 Major/Middle/Minor。
+    /// 
+    /// 若資料同時包含巢狀 children，本方法會展開 children 並回傳扁平清單。
     /// </remarks>
     public static IReadOnlyList<JobCategory> LoadJobCategories(string jsonFilePath)
     {
@@ -37,9 +39,10 @@ public static class JobPositionJsonLoader
         var nodes = JsonSerializer.Deserialize<List<JobPositionNode>>(stream, options)
             ?? throw new JsonException($"Failed to deserialize JSON array. Path={jsonFilePath}");
 
-        var result = new List<JobCategory>(nodes.Count);
+        var allNodes = FlattenNodes(nodes);
+        var result = new List<JobCategory>(allNodes.Count);
 
-        foreach (var node in nodes)
+        foreach (var node in allNodes)
         {
             if (node is null)
             {
@@ -58,6 +61,45 @@ public static class JobPositionJsonLoader
 
             var level = (JobCategoryLevel)node.Level;
             result.Add(new JobCategory(node.Code, node.Name, node.ParentCode, level));
+        }
+
+        return result;
+    }
+
+    private static List<JobPositionNode> FlattenNodes(IEnumerable<JobPositionNode> rootNodes)
+    {
+        var result = new List<JobPositionNode>();
+        var stack = new Stack<JobPositionNode>();
+
+        foreach (var root in rootNodes)
+        {
+            if (root is null)
+            {
+                continue;
+            }
+
+            stack.Push(root);
+
+            while (stack.Count > 0)
+            {
+                var current = stack.Pop();
+                result.Add(current);
+
+                if (current.Children is null || current.Children.Count == 0)
+                {
+                    continue;
+                }
+
+                // Reverse push to preserve original order as much as possible.
+                for (var index = current.Children.Count - 1; index >= 0; index--)
+                {
+                    var child = current.Children[index];
+                    if (child is not null)
+                    {
+                        stack.Push(child);
+                    }
+                }
+            }
         }
 
         return result;

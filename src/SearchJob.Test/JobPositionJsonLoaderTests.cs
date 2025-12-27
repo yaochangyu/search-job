@@ -32,4 +32,37 @@ public sealed class JobPositionJsonLoaderTests
         // Optional: ensure the loaded data can build the hierarchy index (may throw if source data violates spec constraints)
         _ = new JobCategoryHierarchyIndex(categories);
     }
+
+    [Fact]
+    public void LoadJobCategories_WhenJsonHasNestedChildren_FlattensNodes()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"jobPosition-nested-{Guid.NewGuid():N}.json");
+
+        File.WriteAllText(tempFile,
+            "[" +
+            "  { \"code\": 100000, \"name\": \"管理幕僚／人資／行政\", \"parentCode\": null, \"level\": 1, \"children\": [" +
+            "      { \"code\": 100100, \"name\": \"管理幕僚\", \"parentCode\": 100000, \"level\": 2, \"children\": [" +
+            "          { \"code\": 100101, \"name\": \"經營管理主管\", \"parentCode\": 100100, \"level\": 3, \"children\": [] }" +
+            "      ] }" +
+            "  ] }" +
+            "]");
+
+        try
+        {
+            var categories = JobPositionJsonLoader.LoadJobCategories(tempFile);
+
+            Assert.Contains(categories, c => c.Code == 100000 && c.Level == Models.JobCategoryLevel.Major);
+            Assert.Contains(categories, c => c.Code == 100100 && c.Level == Models.JobCategoryLevel.Middle);
+            Assert.Contains(categories, c => c.Code == 100101 && c.Level == Models.JobCategoryLevel.Minor);
+
+            _ = new JobCategoryHierarchyIndex(categories);
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+            {
+                File.Delete(tempFile);
+            }
+        }
+    }
 }
