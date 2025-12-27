@@ -1,4 +1,5 @@
 using SearchJob.Indexes;
+using SearchJob.Loaders;
 using System.Text.Json;
 
 namespace SearchJob.Test;

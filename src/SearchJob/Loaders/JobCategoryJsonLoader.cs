@@ -1,7 +1,7 @@
 using System.Text.Json;
 using SearchJob.Models;
 
-namespace SearchJob;
+namespace SearchJob.Loaders;
 
 public static class JobCategoryJsonLoader
 {

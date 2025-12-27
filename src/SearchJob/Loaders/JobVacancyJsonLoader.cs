@@ -1,7 +1,7 @@
 using System.Text.Json;
 using SearchJob.Models;
 
-namespace SearchJob;
+namespace SearchJob.Loaders;
 
 /// <summary>
 /// 職缺資料 JSON 載入器。
