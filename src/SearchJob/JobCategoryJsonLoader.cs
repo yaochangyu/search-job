@@ -3,9 +3,9 @@ using SearchJob.Models;
 
 namespace SearchJob;
 
-public static class JobPositionJsonLoader
+public static class JobCategoryJsonLoader
 {
-    private sealed class JobPositionNode
+    private sealed class JobCategoryNode
     {
         public int Code { get; set; }
         public string? Name { get; set; }
@@ -13,11 +13,11 @@ public static class JobPositionJsonLoader
         public int Level { get; set; }
 
         // 資料檔可能同時提供巢狀 children 與扁平清單；目前轉換只需要上面欄位。
-        public List<JobPositionNode>? Children { get; set; }
+        public List<JobCategoryNode>? Children { get; set; }
     }
 
     /// <summary>
-    /// 讀取 jobPosition.json，轉成 <see cref="JobCategory"/> 清單。
+    /// 讀取 jobCategory.json，轉成 <see cref="JobCategory"/> 清單。
     /// </summary>
     /// <remarks>
     /// 目前假設 JSON 根節點是陣列，且每個節點至少包含：code、name、parentCode、level。
@@ -36,7 +36,7 @@ public static class JobPositionJsonLoader
             PropertyNameCaseInsensitive = true,
         };
 
-        var nodes = JsonSerializer.Deserialize<List<JobPositionNode>>(stream, options)
+        var nodes = JsonSerializer.Deserialize<List<JobCategoryNode>>(stream, options)
             ?? throw new JsonException($"Failed to deserialize JSON array. Path={jsonFilePath}");
 
         var allNodes = FlattenNodes(nodes);
@@ -66,11 +66,11 @@ public static class JobPositionJsonLoader
         return result;
     }
 
-    private static List<JobPositionNode> FlattenNodes(IEnumerable<JobPositionNode> rootNodes)
+    private static List<JobCategoryNode> FlattenNodes(IEnumerable<JobCategoryNode> rootNodes)
     {
-        var result = new List<JobPositionNode>();
-        var stack = new Stack<JobPositionNode>();
-        var seenByCode = new Dictionary<int, JobPositionNode>();
+        var result = new List<JobCategoryNode>();
+        var stack = new Stack<JobCategoryNode>();
+        var seenByCode = new Dictionary<int, JobCategoryNode>();
 
         foreach (var root in rootNodes)
         {

@@ -3,17 +3,17 @@ using System.Text.Json;
 
 namespace SearchJob.Test;
 
-public sealed class JobPositionJsonLoaderTests
+public sealed class JobCategoryJsonLoaderTests
 {
     [Fact]
-    public void LoadJobCategories_Reads_Real_JobPosition_Json_File()
+    public void LoadJobCategories_Reads_Real_JobCategory_Json_File()
     {
         // Arrange
-        var jsonPath = Path.Combine(AppContext.BaseDirectory, "TestData", "jobPosition.json");
+        var jsonPath = Path.Combine(AppContext.BaseDirectory, "TestData", "jobCategory.json");
         Assert.True(File.Exists(jsonPath), $"Missing test data file: {jsonPath}");
 
         // Act
-        var categories = JobPositionJsonLoader.LoadJobCategories(jsonPath);
+        var categories = JobCategoryJsonLoader.LoadJobCategories(jsonPath);
 
         // Assert (basic sanity)
         Assert.NotNull(categories);
@@ -37,7 +37,7 @@ public sealed class JobPositionJsonLoaderTests
     [Fact]
     public void LoadJobCategories_WhenJsonHasNestedChildren_FlattensNodes()
     {
-        var tempFile = Path.Combine(Path.GetTempPath(), $"jobPosition-nested-{Guid.NewGuid():N}.json");
+        var tempFile = Path.Combine(Path.GetTempPath(), $"jobCategory-nested-{Guid.NewGuid():N}.json");
 
         File.WriteAllText(tempFile,
             "[" +
@@ -50,7 +50,7 @@ public sealed class JobPositionJsonLoaderTests
 
         try
         {
-            var categories = JobPositionJsonLoader.LoadJobCategories(tempFile);
+            var categories = JobCategoryJsonLoader.LoadJobCategories(tempFile);
 
             Assert.Contains(categories, c => c.Code == 100000 && c.Level == Models.JobCategoryLevel.Major);
             Assert.Contains(categories, c => c.Code == 100100 && c.Level == Models.JobCategoryLevel.Middle);
@@ -75,7 +75,7 @@ public sealed class JobPositionJsonLoaderTests
         // - a nested tree (major -> middle -> minor)
         // - a flat list of the same nodes (duplicated codes)
         // Without de-duplication, building JobCategoryHierarchyIndex would fail due to duplicate codes.
-        var tempFile = Path.Combine(Path.GetTempPath(), $"jobPosition-dup-{Guid.NewGuid():N}.json");
+        var tempFile = Path.Combine(Path.GetTempPath(), $"jobCategory-dup-{Guid.NewGuid():N}.json");
 
         File.WriteAllText(tempFile,
             "[" +
@@ -93,7 +93,7 @@ public sealed class JobPositionJsonLoaderTests
         try
         {
             // Act
-            var categories = JobPositionJsonLoader.LoadJobCategories(tempFile);
+            var categories = JobCategoryJsonLoader.LoadJobCategories(tempFile);
 
             // Assert: unique codes only
             Assert.Equal(3, categories.Select(c => c.Code).Distinct().Count());
@@ -115,7 +115,7 @@ public sealed class JobPositionJsonLoaderTests
     public void LoadJobCategories_WhenDuplicateCodesHaveInconsistentData_ThrowsJsonException()
     {
         // Arrange
-        var tempFile = Path.Combine(Path.GetTempPath(), $"jobPosition-dup-mismatch-{Guid.NewGuid():N}.json");
+        var tempFile = Path.Combine(Path.GetTempPath(), $"jobCategory-dup-mismatch-{Guid.NewGuid():N}.json");
 
         File.WriteAllText(tempFile,
             "[" +
@@ -130,7 +130,7 @@ public sealed class JobPositionJsonLoaderTests
 
         try
         {
-            var ex = Assert.Throws<JsonException>(() => JobPositionJsonLoader.LoadJobCategories(tempFile));
+            var ex = Assert.Throws<JsonException>(() => JobCategoryJsonLoader.LoadJobCategories(tempFile));
             Assert.Contains("Duplicate code", ex.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("100100", ex.Message, StringComparison.OrdinalIgnoreCase);
         }
