@@ -10,17 +10,17 @@ public sealed class JobIndexesSpec2Tests
         var categories = new List<JobCategory>
         {
             // Major
-            new JobCategory(100000, "管理幕僚／人資／行政", parentCode: null, JobCategoryLevel.Major),
+            new JobCategory(100000, "管理幕僚／人資／行政", ParentCode: null, JobCategoryLevel.Major),
 
             // Middle
-            new JobCategory(100100, "管理幕僚", parentCode: 100000, JobCategoryLevel.Middle),
-            new JobCategory(100200, "人力資源", parentCode: 100000, JobCategoryLevel.Middle),
+            new JobCategory(100100, "管理幕僚", ParentCode: 100000, JobCategoryLevel.Middle),
+            new JobCategory(100200, "人力資源", ParentCode: 100000, JobCategoryLevel.Middle),
 
             // Minor
-            new JobCategory(100101, "經營管理主管", parentCode: 100100, JobCategoryLevel.Minor),
-            new JobCategory(100105, "特別助理", parentCode: 100100, JobCategoryLevel.Minor),
-            new JobCategory(100205, "人事助理", parentCode: 100200, JobCategoryLevel.Minor),
-            new JobCategory(100206, "就業服務員", parentCode: 100200, JobCategoryLevel.Minor),
+            new JobCategory(100101, "經營管理主管", ParentCode: 100100, JobCategoryLevel.Minor),
+            new JobCategory(100105, "特別助理", ParentCode: 100100, JobCategoryLevel.Minor),
+            new JobCategory(100205, "人事助理", ParentCode: 100200, JobCategoryLevel.Minor),
+            new JobCategory(100206, "就業服務員", ParentCode: 100200, JobCategoryLevel.Minor),
         };
 
         return new JobCategoryHierarchyIndex(categories);
