@@ -5,7 +5,7 @@ namespace SearchJob.Test.Indexes;
 
 public sealed class JobCategoryHierarchyIndexTests
 {
-    private static IReadOnlyList<JobCategory> CreateCategories() =>
+    private static IReadOnlyList<JobCategory> CreateJobCategories() =>
         new List<JobCategory>
         {
             new(100000, "管理幕僚／人資／行政", null, JobCategoryLevel.Major),
@@ -20,7 +20,7 @@ public sealed class JobCategoryHierarchyIndexTests
         };
 
     private static JobCategoryHierarchyIndex CreateCategoryIndex() =>
-        new JobCategoryHierarchyIndex(CreateCategories());
+        new JobCategoryHierarchyIndex(CreateJobCategories());
 
     [Fact]
     public void GetMajorCodesByMinorCodes_WhenMinorCodesProvided_ReturnsMajorCodes()
