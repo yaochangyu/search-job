@@ -1,4 +1,5 @@
 using SearchJob.Indexes;
+using System.Text.Json;
 
 namespace SearchJob.Test;
 
@@ -100,6 +101,38 @@ public sealed class JobPositionJsonLoaderTests
 
             // And index building should not throw
             _ = new JobCategoryHierarchyIndex(categories);
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+            {
+                File.Delete(tempFile);
+            }
+        }
+    }
+
+    [Fact]
+    public void LoadJobCategories_WhenDuplicateCodesHaveInconsistentData_ThrowsJsonException()
+    {
+        // Arrange
+        var tempFile = Path.Combine(Path.GetTempPath(), $"jobPosition-dup-mismatch-{Guid.NewGuid():N}.json");
+
+        File.WriteAllText(tempFile,
+            "[" +
+            "  { \"code\": 100000, \"name\": \"管理幕僚／人資／行政\", \"parentCode\": null, \"level\": 1, \"children\": [" +
+            "      { \"code\": 100100, \"name\": \"管理幕僚\", \"parentCode\": 100000, \"level\": 2, \"children\": [" +
+            "          { \"code\": 100101, \"name\": \"經營管理主管\", \"parentCode\": 100100, \"level\": 3 }" +
+            "      ] }" +
+            "  ] }," +
+            // Flat duplicate with same code but different name (inconsistent)
+            "  { \"code\": 100100, \"name\": \"管理幕僚-不同名稱\", \"parentCode\": 100000, \"level\": 2 }" +
+            "]");
+
+        try
+        {
+            var ex = Assert.Throws<JsonException>(() => JobPositionJsonLoader.LoadJobCategories(tempFile));
+            Assert.Contains("Duplicate code", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("100100", ex.Message, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {

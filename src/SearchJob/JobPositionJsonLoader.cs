@@ -70,7 +70,7 @@ public static class JobPositionJsonLoader
     {
         var result = new List<JobPositionNode>();
         var stack = new Stack<JobPositionNode>();
-        var seenCodes = new HashSet<int>();
+        var seenByCode = new Dictionary<int, JobPositionNode>();
 
         foreach (var root in rootNodes)
         {
@@ -86,10 +86,24 @@ public static class JobPositionJsonLoader
                 var current = stack.Pop();
 
                 // 資料可能同時提供扁平清單與巢狀 children，或 children 形成循環；以 code 去重可避免重複與無限遍歷。
-                if (!seenCodes.Add(current.Code))
+                if (seenByCode.TryGetValue(current.Code, out var existing))
                 {
+                    // 若同 code 的資料內容不一致，代表來源資料自相矛盾：應 fail fast。
+                    // Children 不納入一致性判斷（同一節點可出現在 tree 與 flat list）。
+                    if (!string.Equals(existing.Name, current.Name, StringComparison.Ordinal)
+                        || existing.ParentCode != current.ParentCode
+                        || existing.Level != current.Level)
+                    {
+                        throw new JsonException(
+                            $"Duplicate code with inconsistent data. code={current.Code}, " +
+                            $"existing=(name='{existing.Name}', parentCode={existing.ParentCode}, level={existing.Level}), " +
+                            $"current=(name='{current.Name}', parentCode={current.ParentCode}, level={current.Level}).");
+                    }
+
                     continue;
                 }
+
+                seenByCode.Add(current.Code, current);
 
                 result.Add(current);
 
