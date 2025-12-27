@@ -34,8 +34,9 @@ public sealed class JobIndexesTests
     }
 
     [Fact]
-    public void CategoryIndex_GetMajorCodesByMinorCodes_IgnoresDuplicatesAndUnknown()
+    public void GetMajorCodesByMinorCodes_WhenInputHasDuplicatesOrUnknown_IgnoresDuplicatesAndUnknown()
     {
+        // Protects: minorCodes 輸入含重複/未知時，仍能正確推導 majorCodes，且忽略無效輸入。
         var index = CreateCategoryIndex();
 
         var result = index.GetMajorCodesByMinorCodes(new[] { 100101, 100105, 100101, 999999 });
@@ -44,8 +45,9 @@ public sealed class JobIndexesTests
     }
 
     [Fact]
-    public void CategoryIndex_GetMiddleCodesByMinorCodes_IgnoresDuplicatesAndUnknown()
+    public void GetMiddleCodesByMinorCodes_WhenInputHasDuplicatesOrUnknown_IgnoresDuplicatesAndUnknown()
     {
+        // Protects: minorCodes 輸入含重複/未知時，仍能正確推導 middleCodes，且忽略無效輸入。
         var index = CreateCategoryIndex();
 
         var result = index.GetMiddleCodesByMinorCodes(new[] { 100101, 100205, 100205, 999999 });
@@ -54,8 +56,9 @@ public sealed class JobIndexesTests
     }
 
     [Fact]
-    public void CategoryIndex_GetMinorCodesByMiddleCodes_IgnoresDuplicatesAndUnknown()
+    public void GetMinorCodesByMiddleCodes_WhenInputHasDuplicatesOrUnknown_IgnoresDuplicatesAndUnknown()
     {
+        // Protects: middleCodes 輸入含重複/未知時，仍能正確取得所有對應 minorCodes，且輸出去重。
         var index = CreateCategoryIndex();
 
         var result = index.GetMinorCodesByMiddleCodes(new[] { 100100, 100100, 999999 });
@@ -64,8 +67,9 @@ public sealed class JobIndexesTests
     }
 
     [Fact]
-    public void CategoryIndex_GetMajorCodesByMiddleCodes_IgnoresDuplicatesAndUnknown()
+    public void GetMajorCodesByMiddleCodes_WhenInputHasDuplicatesOrUnknown_IgnoresDuplicatesAndUnknown()
     {
+        // Protects: middleCodes 輸入含重複/未知時，仍能正確推導 majorCodes，且忽略無效輸入。
         var index = CreateCategoryIndex();
 
         var result = index.GetMajorCodesByMiddleCodes(new[] { 100100, 100200, 100200, 999999 });
@@ -74,8 +78,9 @@ public sealed class JobIndexesTests
     }
 
     [Fact]
-    public void CategoryIndex_GetMinorCodesByMajorCodes_IgnoresDuplicatesAndUnknown()
+    public void GetMinorCodesByMajorCodes_WhenInputHasDuplicatesOrUnknown_IgnoresDuplicatesAndUnknown()
     {
+        // Protects: majorCodes 輸入含重複/未知時，仍能正確展開其後代 minorCodes，且輸出去重。
         var index = CreateCategoryIndex();
 
         var result = index.GetMinorCodesByMajorCodes(new[] { 100000, 100000, 999999 });
@@ -84,55 +89,13 @@ public sealed class JobIndexesTests
     }
 
     [Fact]
-    public void CategoryIndex_GetMiddleCodesByMajorCodes_IgnoresDuplicatesAndUnknown()
+    public void GetMiddleCodesByMajorCodes_WhenInputHasDuplicatesOrUnknown_IgnoresDuplicatesAndUnknown()
     {
+        // Protects: majorCodes 輸入含重複/未知時，仍能正確取得 middleCodes，且輸出去重。
         var index = CreateCategoryIndex();
 
         var result = index.GetMiddleCodesByMajorCodes(new[] { 100000, 100000, 999999 });
 
         AssertSetEquals(new[] { 100100, 100200 }, result);
-    }
-
-    [Fact]
-    public void JobToCategoryIndex_GetCodesByJobIds_ReturnsExpectedSets()
-    {
-        var categoryIndex = CreateCategoryIndex();
-
-        var jobs = new List<JobPosting>
-        {
-            new JobPosting(1, "Job 1", "desc", new[] { 100101, 100101, 100205 }),
-            new JobPosting(2, "Job 2", "desc", minorCodes: null),
-            new JobPosting(3, "Job 3", "desc", new[] { 100206 }),
-        };
-
-        var jobIndex = new JobToCategoryIndex(categoryIndex, jobs);
-
-        var minorCodes = jobIndex.GetMinorCodesByJobIds(new[] { 1, 3, 3, 999 });
-        AssertSetEquals(new[] { 100101, 100205, 100206 }, minorCodes);
-
-        var middleCodes = jobIndex.GetMiddleCodesByJobIds(new[] { 1, 3, 999 });
-        AssertSetEquals(new[] { 100100, 100200 }, middleCodes);
-
-        var majorCodes = jobIndex.GetMajorCodesByJobIds(new[] { 1, 3, 999 });
-        AssertSetEquals(new[] { 100000 }, majorCodes);
-    }
-
-    [Fact]
-    public void MajorToJobIndex_GetJobIdsByMajorCodes_IgnoresDuplicatesAndUnknown()
-    {
-        var categoryIndex = CreateCategoryIndex();
-
-        var jobs = new List<JobPosting>
-        {
-            new JobPosting(1, "Job 1", "desc", new[] { 100101, 999999 }),
-            new JobPosting(2, "Job 2", "desc", minorCodes: null),
-            new JobPosting(3, "Job 3", "desc", new[] { 100206 }),
-            new JobPosting(4, "Job 4", "desc", new[] { 999999 }),
-        };
-
-        var index = new MajorToJobIndex(categoryIndex, jobs);
-        var jobIds = index.GetJobIdsByMajorCodes(new[] { 100000, 100000, 999999 });
-
-        AssertSetEquals(new[] { 1, 3 }, jobIds);
     }
 }

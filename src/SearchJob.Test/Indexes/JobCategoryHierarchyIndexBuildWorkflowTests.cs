@@ -6,8 +6,9 @@ namespace SearchJob.Test.Indexes;
 public sealed class JobCategoryHierarchyIndexBuildWorkflowTests
 {
     [Fact]
-    public void BuildWorkflow_Writes_In_Major_Middle_Minor_Order_EvenIfInputIsReversed()
+    public void Constructor_WhenInputOrderIsReversed_BuildsHierarchyInMajorMiddleMinorOrder()
     {
+        // Protects: 建置不依賴輸入順序；即使 categories 亂序仍能成功建立階層索引。
         // Arrange: 刻意把輸入順序反過來（Minors -> Middles -> Major）
         // 若建置是「單一 foreach 依輸入順序寫入」，會先遇到 Minor 而因找不到 Middle 而失敗。
         // 依 spec-2 4.0 #2，建置應分層級寫入（Major -> Middle -> Minor），因此仍可成功建置。
@@ -34,8 +35,9 @@ public sealed class JobCategoryHierarchyIndexBuildWorkflowTests
     }
 
     [Fact]
-    public void BuildWorkflow_Throws_When_MiddleReferencesMissingMajor()
+    public void Constructor_WhenMiddleReferencesMissingMajor_ThrowsArgumentException()
     {
+        // Protects: Middle 指向不存在的 Major 時必須 fail fast，避免建立不一致索引。
         var categories = new List<JobCategory>
         {
             new(100100, "管理幕僚", 999999, JobCategoryLevel.Middle),
@@ -45,8 +47,9 @@ public sealed class JobCategoryHierarchyIndexBuildWorkflowTests
     }
 
     [Fact]
-    public void BuildWorkflow_Throws_When_DuplicateCodesExist()
+    public void Constructor_WhenDuplicateCodesExist_ThrowsArgumentException()
     {
+        // Protects: JobCategory code 必須唯一；重複 code 應丟出例外避免覆蓋/不確定。
         var categories = new List<JobCategory>
         {
             new(100000, "管理幕僚／人資／行政", null, JobCategoryLevel.Major),

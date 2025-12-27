@@ -5,7 +5,7 @@ namespace SearchJob.Test.Indexes;
 
 public sealed class JobCategoryHierarchyIndexTests
 {
-    private static IReadOnlyList<JobCategory> CreateSpec2Categories() =>
+    private static IReadOnlyList<JobCategory> CreateCategories() =>
         new List<JobCategory>
         {
             new(100000, "管理幕僚／人資／行政", null, JobCategoryLevel.Major),
@@ -20,11 +20,12 @@ public sealed class JobCategoryHierarchyIndexTests
         };
 
     private static JobCategoryHierarchyIndex CreateCategoryIndex() =>
-        new JobCategoryHierarchyIndex(CreateSpec2Categories());
+        new JobCategoryHierarchyIndex(CreateCategories());
 
     [Fact]
-    public void GetMajorCodesByMinorCodes_ReturnsMajorCodes()
+    public void GetMajorCodesByMinorCodes_WhenMinorCodesProvided_ReturnsMajorCodes()
     {
+        // Protects: minorCodes -> majorCodes 的祖先映射正確（多個 minor 可 union）。
         var index = CreateCategoryIndex();
 
         var result = index.GetMajorCodesByMinorCodes(new[] { 100101, 100205 });
@@ -33,8 +34,9 @@ public sealed class JobCategoryHierarchyIndexTests
     }
 
     [Fact]
-    public void GetMiddleCodesByMinorCodes_ReturnsMiddleCodes()
+    public void GetMiddleCodesByMinorCodes_WhenMinorCodesProvided_ReturnsMiddleCodes()
     {
+        // Protects: minorCodes -> middleCodes 的祖先映射正確（可跨多個 middle 匯總）。
         var index = CreateCategoryIndex();
 
         var result = index.GetMiddleCodesByMinorCodes(new[] { 100101, 100205 });
@@ -43,8 +45,9 @@ public sealed class JobCategoryHierarchyIndexTests
     }
 
     [Fact]
-    public void GetMinorCodesByMiddleCodes_ReturnsMinorCodes()
+    public void GetMinorCodesByMiddleCodes_WhenMiddleCodesProvided_ReturnsMinorCodes()
     {
+        // Protects: middleCodes -> minorCodes 的子集合映射正確。
         var index = CreateCategoryIndex();
 
         var result = index.GetMinorCodesByMiddleCodes(new[] { 100100 });
@@ -53,8 +56,9 @@ public sealed class JobCategoryHierarchyIndexTests
     }
 
     [Fact]
-    public void GetMajorCodesByMiddleCodes_ReturnsMajorCodes()
+    public void GetMajorCodesByMiddleCodes_WhenMiddleCodesProvided_ReturnsMajorCodes()
     {
+        // Protects: middleCodes -> majorCodes 的祖先映射正確（可去重）。
         var index = CreateCategoryIndex();
 
         var result = index.GetMajorCodesByMiddleCodes(new[] { 100100, 100200 });
@@ -63,8 +67,9 @@ public sealed class JobCategoryHierarchyIndexTests
     }
 
     [Fact]
-    public void GetMinorCodesByMajorCodes_ReturnsMinorCodes()
+    public void GetMinorCodesByMajorCodes_WhenMajorCodesProvided_ReturnsMinorCodes()
     {
+        // Protects: majorCodes -> 所有後代 minorCodes 的展開正確（跨 middle 匯總）。
         var index = CreateCategoryIndex();
 
         var result = index.GetMinorCodesByMajorCodes(new[] { 100000 });
@@ -73,8 +78,9 @@ public sealed class JobCategoryHierarchyIndexTests
     }
 
     [Fact]
-    public void GetMiddleCodesByMajorCodes_ReturnsMiddleCodes()
+    public void GetMiddleCodesByMajorCodes_WhenMajorCodesProvided_ReturnsMiddleCodes()
     {
+        // Protects: majorCodes -> middleCodes 的子集合映射正確。
         var index = CreateCategoryIndex();
 
         var result = index.GetMiddleCodesByMajorCodes(new[] { 100000 });
@@ -83,8 +89,9 @@ public sealed class JobCategoryHierarchyIndexTests
     }
 
     [Fact]
-    public void DuplicatesAndUnknownCodes_AreIgnoredAndDeDuplicated()
+    public void GetCodesByVariousLevels_WhenInputHasDuplicatesOrUnknown_IgnoresAndDeDuplicates()
     {
+        // Protects: 任何層級查詢在輸入含重複/未知 codes 時，皆忽略未知並輸出去重。
         var index = CreateCategoryIndex();
 
         var majors = index.GetMajorCodesByMinorCodes(new[] { 100101, 100101, 999999 });
@@ -97,8 +104,9 @@ public sealed class JobCategoryHierarchyIndexTests
     }
 
     [Fact]
-    public void JobToCategoryIndex_GetMinorCodesByJobIds_ReturnsUnionedMinorCodes()
+    public void GetMinorCodesByJobIds_WhenJobsContainDuplicatesEmptyAndUnknownJobIds_ReturnsUnionedMinorCodes()
     {
+        // Protects: JobToCategoryIndex 會 union 多個 job 的 minorCodes，忽略重複 minor 與不存在的 jobId。
         var categoryIndex = CreateCategoryIndex();
 
         var jobs = new List<JobPosting>
@@ -115,8 +123,9 @@ public sealed class JobCategoryHierarchyIndexTests
     }
 
     [Fact]
-    public void JobToCategoryIndex_GetMiddleCodesByJobIds_IsDerivedFromMinorViaHierarchyIndex()
+    public void GetMiddleCodesByJobIds_WhenDerivedFromMinorCodesViaHierarchyIndex_ReturnsExpectedMiddleCodes()
     {
+        // Protects: JobToCategoryIndex 的 middleCodes 來自「job minors -> hierarchy 推導」，且忽略未知 minor。
         var categoryIndex = CreateCategoryIndex();
 
         var jobs = new List<JobPosting>
@@ -132,8 +141,9 @@ public sealed class JobCategoryHierarchyIndexTests
     }
 
     [Fact]
-    public void JobToCategoryIndex_GetMajorCodesByJobIds_IsDerivedFromMinorViaHierarchyIndex()
+    public void GetMajorCodesByJobIds_WhenDerivedFromMinorCodesViaHierarchyIndex_ReturnsExpectedMajorCodes()
     {
+        // Protects: JobToCategoryIndex 的 majorCodes 來自「job minors -> hierarchy 推導」，且忽略未知 minor。
         var categoryIndex = CreateCategoryIndex();
 
         var jobs = new List<JobPosting>
