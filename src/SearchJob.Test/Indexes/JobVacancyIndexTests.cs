@@ -80,4 +80,59 @@ public sealed class JobVacancyIndexTests
 
         AssertSetEquals(new[] { 1, 3 }, jobIds);
     }
+
+    [Fact]
+    public void GetMinorCodesByJobIds_WhenJobsContainDuplicatesEmptyAndUnknownJobIds_ReturnsUnionedMinorCodes()
+    {
+        // Protects: JobVacancyIndex 會 union 多個 job 的 minorCodes，忽略重複 minor 與不存在的 jobId。
+        var categoryIndex = CreateCategoryIndex();
+
+        var jobs = new List<JobVacancy>
+        {
+            new JobVacancy(1, "job-1", "desc", new[] { 100101, 100101, 100105 }),
+            new JobVacancy(2, "job-2", "desc", Array.Empty<int>()),
+            new JobVacancy(3, "job-3", "desc", new[] { 100205 }),
+        };
+
+        var index = new JobVacancyIndex(categoryIndex, jobs);
+        var result = index.GetMinorCodesByJobIds(new[] { 1, 3, 9999 });
+
+        Assert.Equal(new HashSet<int> { 100101, 100105, 100205 }, result);
+    }
+
+    [Fact]
+    public void GetMiddleCodesByJobIds_WhenDerivedFromMinorCodesViaHierarchyIndex_ReturnsExpectedMiddleCodes()
+    {
+        // Protects: JobVacancyIndex 的 middleCodes 來自「job minors -> hierarchy 推導」，且忽略未知 minor。
+        var categoryIndex = CreateCategoryIndex();
+
+        var jobs = new List<JobVacancy>
+        {
+            new JobVacancy(1, "job-1", "desc", new[] { 100101, 100105 }),
+            new JobVacancy(3, "job-3", "desc", new[] { 100205, 999999 }),
+        };
+
+        var index = new JobVacancyIndex(categoryIndex, jobs);
+        var result = index.GetMiddleCodesByJobIds(new[] { 1, 3 });
+
+        Assert.Equal(new HashSet<int> { 100100, 100200 }, result);
+    }
+
+    [Fact]
+    public void GetMajorCodesByJobIds_WhenDerivedFromMinorCodesViaHierarchyIndex_ReturnsExpectedMajorCodes()
+    {
+        // Protects: JobVacancyIndex 的 majorCodes 來自「job minors -> hierarchy 推導」，且忽略未知 minor。
+        var categoryIndex = CreateCategoryIndex();
+
+        var jobs = new List<JobVacancy>
+        {
+            new JobVacancy(1, "job-1", "desc", new[] { 100101, 100105 }),
+            new JobVacancy(3, "job-3", "desc", new[] { 100205, 999999 }),
+        };
+
+        var index = new JobVacancyIndex(categoryIndex, jobs);
+        var result = index.GetMajorCodesByJobIds(new[] { 1, 3 });
+
+        Assert.Equal(new HashSet<int> { 100000 }, result);
+    }
 }
