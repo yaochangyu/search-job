@@ -22,4 +22,10 @@
     <ProjectReference Include="..\SearchJob\SearchJob.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="TestData\jobPosition.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
