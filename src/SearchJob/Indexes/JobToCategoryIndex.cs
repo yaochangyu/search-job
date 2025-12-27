@@ -45,12 +45,14 @@ public sealed class JobToCategoryIndex
 
     public IReadOnlySet<int> GetMiddleCodesByJobIds(IEnumerable<int> jobIds)
     {
+        ArgumentNullException.ThrowIfNull(jobIds);
         var minorCodes = GetMinorCodesByJobIds(jobIds);
         return _categoryIndex.GetMiddleCodesByMinorCodes(minorCodes);
     }
 
     public IReadOnlySet<int> GetMajorCodesByJobIds(IEnumerable<int> jobIds)
     {
+        ArgumentNullException.ThrowIfNull(jobIds);
         var minorCodes = GetMinorCodesByJobIds(jobIds);
         return _categoryIndex.GetMajorCodesByMinorCodes(minorCodes);
     }

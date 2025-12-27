@@ -5,6 +5,30 @@ namespace SearchJob.Test.Indexes;
 
 public sealed class JobCategoryHierarchyIndexBuildWorkflowTests
 {
+    private sealed class SinglePassEnumerable<T> : IEnumerable<T>
+    {
+        private readonly IEnumerable<T> _source;
+        private bool _hasBeenEnumerated;
+
+        public SinglePassEnumerable(IEnumerable<T> source)
+        {
+            _source = source;
+        }
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            if (_hasBeenEnumerated)
+            {
+                throw new InvalidOperationException("This sequence can only be enumerated once.");
+            }
+
+            _hasBeenEnumerated = true;
+            return _source.GetEnumerator();
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
     [Fact]
     public void Constructor_WhenInputOrderIsReversed_BuildsHierarchyInMajorMiddleMinorOrder()
     {
@@ -32,6 +56,31 @@ public sealed class JobCategoryHierarchyIndexBuildWorkflowTests
         Assert.Equal(new HashSet<int> { 100000 }, index.GetMajorCodesByMinorCodes(new[] { 100101, 100205 }));
         Assert.Equal(new HashSet<int> { 100100, 100200 }, index.GetMiddleCodesByMajorCodes(new[] { 100000 }));
         Assert.Equal(new HashSet<int> { 100101, 100105 }, index.GetMinorCodesByMiddleCodes(new[] { 100100 }));
+    }
+
+    [Fact]
+    public void Constructor_WhenCategoriesIsSinglePassEnumerable_DoesNotEnumerateMultipleTimes()
+    {
+        // Protects: 建置流程不應依賴可重複列舉的 IEnumerable。
+        // 若建置對 categories 進行多次 foreach/Where，single-pass enumerable 會在第二次列舉時失敗。
+        var categories = new List<JobCategory>
+        {
+            new(100101, "經營管理主管", 100100, JobCategoryLevel.Minor),
+            new(100105, "特別助理", 100100, JobCategoryLevel.Minor),
+            new(100205, "人事助理", 100200, JobCategoryLevel.Minor),
+            new(100206, "就業服務員", 100200, JobCategoryLevel.Minor),
+
+            new(100100, "管理幕僚", 100000, JobCategoryLevel.Middle),
+            new(100200, "人力資源", 100000, JobCategoryLevel.Middle),
+
+            new(100000, "管理幕僚／人資／行政", null, JobCategoryLevel.Major),
+        };
+
+        var singlePass = new SinglePassEnumerable<JobCategory>(categories);
+
+        var index = new JobCategoryHierarchyIndex(singlePass);
+
+        Assert.Equal(new HashSet<int> { 100000 }, index.GetMajorCodesByMinorCodes(new[] { 100101, 100205 }));
     }
 
     [Fact]

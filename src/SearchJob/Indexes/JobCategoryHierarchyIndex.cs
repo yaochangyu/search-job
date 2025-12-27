@@ -52,6 +52,10 @@ public sealed class JobCategoryHierarchyIndex
     {
         ArgumentNullException.ThrowIfNull(categories);
 
+        // Avoid multiple enumeration: callers may pass single-pass iterators.
+        // Materialize once and build indexes from the in-memory list.
+        var categoryList = categories as IList<JobCategory> ?? categories.ToList();
+
         _majorByCode = new Dictionary<int, JobCategory>();
         _middleByCode = new Dictionary<int, JobCategory>();
         _minorByCode = new Dictionary<int, JobCategory>();
@@ -66,7 +70,7 @@ public sealed class JobCategoryHierarchyIndex
         _allCodes = new HashSet<int>();
 
         // 對應 spec-2 4.0 #2：把職務類別分別寫入到索引物件（建議順序：Major -> Middle -> Minor）。
-        WriteAllCategories(categories);
+        WriteAllCategories(categoryList);
     }
 
     private void WriteAllCategories(IEnumerable<JobCategory> categories)
