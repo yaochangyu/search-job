@@ -10,7 +10,7 @@ public sealed class JobVacancyJsonLoaderTests
     public void LoadJobVacancies_Reads_TestData_Job_Json_File()
     {
         // Arrange
-        var jsonPath = Path.Combine(AppContext.BaseDirectory, "TestData", "job.json");
+        var jsonPath = Path.Combine(AppContext.BaseDirectory, "TestData", "jobVacancy.json");
         Assert.True(File.Exists(jsonPath), $"Missing test data file: {jsonPath}");
 
         // Act
@@ -21,8 +21,8 @@ public sealed class JobVacancyJsonLoaderTests
         Assert.Equal(4, jobs.Count);
 
         var job1 = jobs.Single(j => j.JobId == 1);
-        Assert.Equal("HR Assistant", job1.Title);
-        Assert.Equal(new HashSet<int> { 100205, 100206 }, job1.MinorCodes);
+        Assert.Equal("新聞記者", job1.Title);
+        Assert.Equal(new HashSet<int> { 220106, 220105 }, job1.MinorCodes);
 
         var job4 = jobs.Single(j => j.JobId == 4);
         Assert.Empty(job4.MinorCodes);

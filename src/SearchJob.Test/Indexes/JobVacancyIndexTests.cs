@@ -135,4 +135,40 @@ public sealed class JobVacancyIndexTests
 
         Assert.Equal(new HashSet<int> { 100000 }, result);
     }
+
+    [Fact]
+    public void LoadRealJobVacanciesAndFindMajorCategoriesByMinorCodes_ShouldReturnExpectedMajorCategories()
+    {
+        // Arrange: 載入真實的職務類別和職缺資料
+        var categoryJsonPath = Path.Combine(AppContext.BaseDirectory, "TestData", "jobCategory.json");
+        var jobJsonPath = Path.Combine(AppContext.BaseDirectory, "TestData", "jobVacancy.json");
+        
+        Assert.True(File.Exists(categoryJsonPath), $"Missing test data: {categoryJsonPath}");
+        Assert.True(File.Exists(jobJsonPath), $"Missing test data: {jobJsonPath}");
+
+        var categories = Loaders.JobCategoryJsonLoader.LoadJobCategories(categoryJsonPath);
+        var jobs = Loaders.JobVacancyJsonLoader.LoadJobVacancies(jobJsonPath);
+        
+        var categoryIndex = new JobCategoryHierarchyIndex(categories);
+        var jobIndex = new JobVacancyIndex(categoryIndex, jobs);
+
+        // Act: 取得職缺 1 (新聞記者) 的職務小類代碼 [220106, 220105]，然後找出對應的職務大類
+        var job1 = jobs.First(j => j.JobId == 1);
+        var jobIds = new[] { job1.JobId };
+        
+        var minorCodes = jobIndex.GetMinorCodesByJobIds(jobIds);
+        var majorCodes = jobIndex.GetMajorCodesByJobIds(jobIds);
+
+        // Assert: 確認有找到職務小類和大類
+        Assert.NotEmpty(minorCodes);
+        Assert.Contains(220106, minorCodes); // 文字記者
+        Assert.Contains(220105, minorCodes); // 攝影記者
+        
+        Assert.NotEmpty(majorCodes);
+        Assert.Contains(220000, majorCodes); // 影視傳媒／出版翻譯
+        
+        // 驗證：透過小類能正確推導出大類（使用 categoryIndex 驗證）
+        var expectedMajorCodes = categoryIndex.GetMajorCodesByMinorCodes(minorCodes);
+        Assert.Equal(expectedMajorCodes, majorCodes);
+    }
 }

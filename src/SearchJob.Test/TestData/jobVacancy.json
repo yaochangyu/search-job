@@ -1,0 +1,26 @@
+[
+  {
+    "jobId": 1,
+    "title": "新聞記者",
+    "description": "負責新聞採訪、報導與評論工作。",
+    "minorCodes": [220106, 220105]
+  },
+  {
+    "jobId": 2,
+    "title": "媒體公關專員",
+    "description": "協助公司對外媒體關係維護與新聞稿撰寫。",
+    "minorCodes": [220107]
+  },
+  {
+    "jobId": 3,
+    "title": "演員",
+    "description": "電視劇、電影表演工作。",
+    "minorCodes": [220210, 999999]
+  },
+  {
+    "jobId": 4,
+    "title": "未分類職缺",
+    "description": "尚未指派職務類別。",
+    "minorCodes": []
+  }
+]

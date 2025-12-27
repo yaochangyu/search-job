@@ -26,7 +26,7 @@
     <Content Include="TestData\jobCategory.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestData\job.json">
+    <Content Include="TestData\jobVacancy.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
