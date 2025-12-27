@@ -59,4 +59,25 @@ public sealed class JobToCategoryIndexTests
         var majorCodes = jobIndex.GetMajorCodesByJobIds(new[] { 1, 3, 999 });
         AssertSetEquals(new[] { 100000 }, majorCodes);
     }
+
+    [Fact]
+    public void GetJobIdsByMajorCodes_WhenInputHasDuplicatesOrUnknown_IgnoresDuplicatesAndUnknown()
+    {
+        // Protects: JobToCategoryIndex 會忽略重複/未知 major code，且只回傳隸屬該 major(含後代 minor) 的 jobIds。
+
+        var categoryIndex = CreateCategoryIndex();
+
+        var jobs = new List<JobPosting>
+        {
+            new JobPosting(1, "Job 1", "desc", new[] { 100101, 999999 }),
+            new JobPosting(2, "Job 2", "desc", minorCodes: null),
+            new JobPosting(3, "Job 3", "desc", new[] { 100206 }),
+            new JobPosting(4, "Job 4", "desc", new[] { 999999 }),
+        };
+
+        var index = new JobToCategoryIndex(categoryIndex, jobs);
+        var jobIds = index.GetJobIdsByMajorCodes(new[] { 100000, 100000, 999999 });
+
+        AssertSetEquals(new[] { 1, 3 }, jobIds);
+    }
 }

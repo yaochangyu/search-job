@@ -3,18 +3,20 @@ using SearchJob.Models;
 namespace SearchJob.Indexes;
 
 /// <summary>
-/// 職缺代碼 → 職務類別索引（對應 spec-2 第 5 章）。
+/// 職缺代碼 ↔ 職務類別雙向索引（對應 spec-2 第 5 章與第 6 章）。
 /// 
 /// 設計重點：
 /// - 在建構時預先建置小類/中類/大類索引，避免查詢時跨索引重算
 /// - 若輸入的 jobs 包含重複的 jobId，會將其 MinorCodes 進行聯集合併
 /// - 中類和大類代碼在建構時從層級索引推導並快取（對應 spec-2 第 5.3 節）
+/// - 同時建立反向索引：職務大類 → 職缺集合（對應 spec-2 第 6 章）
 /// </summary>
 public sealed class JobToCategoryIndex
 {
     private readonly Dictionary<int, HashSet<int>> _minorCodesByJobId;
     private readonly Dictionary<int, HashSet<int>> _middleCodesByJobId;
     private readonly Dictionary<int, HashSet<int>> _majorCodesByJobId;
+    private readonly Dictionary<int, HashSet<int>> _jobIdsByMajorCode;
 
     public JobToCategoryIndex(JobCategoryHierarchyIndex categoryIndex, IEnumerable<JobPosting> jobs)
     {
@@ -24,6 +26,7 @@ public sealed class JobToCategoryIndex
         _minorCodesByJobId = new Dictionary<int, HashSet<int>>();
         _middleCodesByJobId = new Dictionary<int, HashSet<int>>();
         _majorCodesByJobId = new Dictionary<int, HashSet<int>>();
+        _jobIdsByMajorCode = new Dictionary<int, HashSet<int>>();
 
         foreach (var job in jobs)
         {
@@ -52,6 +55,17 @@ public sealed class JobToCategoryIndex
                 _majorCodesByJobId[job.JobId] = majorSet;
             }
             majorSet.UnionWith(majorCodes);
+
+            // 建立反向索引：大類 → 職缺集合
+            foreach (var majorCode in majorCodes)
+            {
+                if (!_jobIdsByMajorCode.TryGetValue(majorCode, out var jobSet))
+                {
+                    jobSet = new HashSet<int>();
+                    _jobIdsByMajorCode[majorCode] = jobSet;
+                }
+                jobSet.Add(job.JobId);
+            }
         }
     }
 
@@ -86,6 +100,17 @@ public sealed class JobToCategoryIndex
     {
         ArgumentNullException.ThrowIfNull(jobIds);
         return UnionAll(_majorCodesByJobId, jobIds);
+    }
+
+    /// <summary>
+    /// 反向查詢：用一個或多個「職務大類」找到多筆「職缺代碼」（對應 spec-2 第 6.2 節）。
+    /// </summary>
+    /// <param name="majorCodes">大類代碼集合（允許重複；不存在的代碼會被忽略）。</param>
+    /// <returns>職缺代碼集合（不重複、不保證順序）。</returns>
+    public IReadOnlySet<int> GetJobIdsByMajorCodes(IEnumerable<int> majorCodes)
+    {
+        ArgumentNullException.ThrowIfNull(majorCodes);
+        return UnionAll(_jobIdsByMajorCode, majorCodes);
     }
 
     private static IReadOnlySet<int> UnionAll(
