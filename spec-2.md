@@ -17,8 +17,8 @@
 - **職務中類（Middle）**：隸屬於某一個大類。
 - **職務小類（Minor）**：隸屬於某一個中類。
 - **職缺（JobVacancy）**：具體的工作機會，包含職缺編號、標題、說明等資訊。
-- **編號（Code）**：分類或職缺的識別碼。類別編號與職缺編號是不同概念。
-- **父編號（ParentCode）**：用於表示上層類別的編號。
+- **編號（Id）**：分類或職缺的識別碼。類別編號與職缺編號是不同概念。
+- **父編號（ParentId）**：用於表示上層類別的編號。
 
 ---
 
@@ -33,7 +33,7 @@
 - **父編號**：整數（常整數）
 	- 職務大類（Major）該欄位為 null
 
-> 備註：本規格其餘段落所稱的「編號（Code）」與「父編號（ParentCode）」即為上述欄位。
+> 備註：本規格其餘段落所稱的「編號（Id）」與「父編號（ParentId）」即為上述欄位。
 
 ### 2.1 層級約束
 
@@ -67,7 +67,7 @@
 - **職缺編號（JobId）**：整數（常整數）
 - **工作標題（Title）**：字串（必填）
 - **工作說明（Description）**：字串
-- **職務小類（MinorCodes）**：可多筆（0..N）
+- **職務小類（MinorIds）**：可多筆（0..N）
 	- 每一筆小類以「小類編號」表示
 	- 同一職缺不可重複同一個小類編號（需去重）
 
@@ -98,28 +98,28 @@
 系統必須提供以下查詢能力（輸入可以是一個編號或多個編號）：
 
 1) **用一個或多個「職務小類」找到多個「職務大類」**
-- Input: `minorCodes`（小類編號集合）
-- Output: `majorCodes`（大類編號集合）
+- Input: `minorIds`（小類編號集合）
+- Output: `majorIds`（大類編號集合）
 
 2) **用一個或多個「職務小類」找到多個「職務中類」**
-- Input: `minorCodes`（小類編號集合）
-- Output: `middleCodes`（中類編號集合）
+- Input: `minorIds`（小類編號集合）
+- Output: `middleIds`（中類編號集合）
 
 3) **用一個或多個「職務中類」找到多個「職務小類」**
-- Input: `middleCodes`（中類編號集合）
-- Output: `minorCodes`（小類編號集合）
+- Input: `middleIds`（中類編號集合）
+- Output: `minorIds`（小類編號集合）
 
 4) **用一個或多個「職務中類」找到多個「職務大類」**
-- Input: `middleCodes`（中類編號集合）
-- Output: `majorCodes`（大類編號集合）
+- Input: `middleIds`（中類編號集合）
+- Output: `majorIds`（大類編號集合）
 
 5) **用一個或多個「職務大類」找到多個「職務小類」**
-- Input: `majorCodes`（大類編號集合）
-- Output: `minorCodes`（小類編號集合）
+- Input: `majorIds`（大類編號集合）
+- Output: `minorIds`（小類編號集合）
 
 6) **用一個或多個「職務大類」找到多個「職務中類」**
-- Input: `majorCodes`（大類編號集合）
-- Output: `middleCodes`（中類編號集合）
+- Input: `majorIds`（大類編號集合）
+- Output: `middleIds`（中類編號集合）
 
 ### 4.3 回傳集合規則
 
@@ -139,7 +139,7 @@
 ### 5.1 設計原則
 
 - 在建構時預先建置小類/中類/大類索引，避免查詢時跨索引重算（對應第 5.3 節）。
-- 若輸入的職缺包含重複的 jobId，會將其 MinorCodes 進行聯集合併。
+- 若輸入的職缺包含重複的 jobId，會將其 MinorIds 進行聯集合併。
 - 同時建立反向索引：職務大類 → 職缺集合（對應第 6 章）。
 
 ### 5.2 必備查詢（可驗收）
@@ -148,18 +148,18 @@
 
 1) **用一個或多個「職缺編號」找到多筆「職務小類」**
 - Input: `jobIds`（職缺編號集合）
-- Output: `minorCodes`（小類編號集合）
+- Output: `minorIds`（小類編號集合）
 
 2) **用一個或多個「職缺編號」找到多筆「職務中類」**
 - Input: `jobIds`（職缺編號集合）
-- Output: `middleCodes`（中類編號集合）
+- Output: `middleIds`（中類編號集合）
 
 3) **用一個或多個「職缺編號」找到多個「職務大類」**
 - Input: `jobIds`（職缺編號集合）
-- Output: `majorCodes`（大類編號集合）
+- Output: `majorIds`（大類編號集合）
 
 4) **用一個或多個「職務大類」找到多筆「職缺編號」**（反向查詢，對應第 6.2 節）
-- Input: `majorCodes`（大類編號集合）
+- Input: `majorIds`（大類編號集合）
 - Output: `jobIds`（職缺編號集合）
 
 ### 5.3 映射規則（由層級索引推導並預先快取）
@@ -180,26 +180,26 @@
 
 1. **讀取職缺**
 	- 一次性讀取所有職缺資料（同一批資料）。
-	- 每筆職缺包含：職缺編號（jobId）與 0..N 個職務小類編號（minorCodes，需去重）。
+	- 每筆職缺包含：職缺編號（jobId）與 0..N 個職務小類編號（minorIds，需去重）。
 
 2. **由職缺小類推導出職務大類**
-	- 透過第 4 節索引：小類編號（minorCode）→ 大類編號（majorCode）。
-	- 不存在的小類編號（minorCode）忽略。
+	- 透過第 4 節索引：小類編號（minorId）→ 大類編號（majorId）。
+	- 不存在的小類編號（minorId）忽略。
 
 3. **建立「職務大類 → 職缺集合」索引**
-	- 將推導出的大類編號（majorCode）寫入索引，並把該職缺的 jobId 加入對應集合。
-	- 建議資料結構：`Dictionary<int, HashSet<int>>`（大類編號 majorCode → 職缺編號集合 jobIds）。
-	- 同一個大類編號（majorCode）底下不應重複同一個職缺編號（jobId）（集合語意）。
+	- 將推導出的大類編號（majorId）寫入索引，並把該職缺的 jobId 加入對應集合。
+	- 建議資料結構：`Dictionary<int, HashSet<int>>`（大類編號 majorId → 職缺編號集合 jobIds）。
+	- 同一個大類編號（majorId）底下不應重複同一個職缺編號（jobId）（集合語意）。
 
 ### 6.2 必備查詢（可驗收）
 
 1) **用一個或多個「職務大類」找到多筆「職缺編號」**
-- Input: `majorCodes`（大類編號集合）
+- Input: `majorIds`（大類編號集合）
 - Output: `jobIds`（職缺編號集合）
 
 > 回傳集合規則：同第 4.3 節。
-> 
-> 實作位置：此查詢已整合在 `JobVacancyIndex.GetJobIdsByMajorCodes()` 方法中（第 5.2 節）。
+>
+> 實作位置：此查詢已整合在 `JobVacancyIndex.GetJobIdsByMajorIds()` 方法中（第 5.2 節）。
 
 ---
 
